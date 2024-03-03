@@ -1,8 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import styled from 'styled-components';
 import { DeleteCabin } from '../../services/apiCabins';
 import { formatCurrency } from '../../utils/helpers';
+import CreateCabinForm from './CreateCabinForm';
 
 const TableRow = styled.div`
   display: grid;
@@ -44,6 +46,7 @@ const Discount = styled.div`
 `;
 
 export default function CabinRow({ cabin }) {
+  const [showForm, setShowForm] = useState(false);
   const { id: cabinId, name, maxCapacity, regularPrice, discount, image } = cabin;
 
   // queryClient is responsible for invalidate data then it will cause a refetch
@@ -62,15 +65,21 @@ export default function CabinRow({ cabin }) {
   });
 
   return (
-    <TableRow role="row">
-      <img src={image} />
-      <Cabin>{name}</Cabin>
-      <div>Fits up to {maxCapacity} guests</div>
-      <Price>{formatCurrency(regularPrice)}</Price>
-      <Discount>{formatCurrency(discount)}</Discount>
-      <button disabled={isDeleting} onClick={() => mutate(cabinId)}>
-        Delete
-      </button>
-    </TableRow>
+    <>
+      <TableRow role="row">
+        <img src={image} />
+        <Cabin>{name}</Cabin>
+        <div>Fits up to {maxCapacity} guests</div>
+        <Price>{formatCurrency(regularPrice)}</Price>
+        <Discount>{formatCurrency(discount)}</Discount>
+        <div>
+          <button onClick={() => setShowForm((s) => !s)}>Edit</button>
+          <button disabled={isDeleting} onClick={() => mutate(cabinId)}>
+            Delete
+          </button>
+        </div>
+      </TableRow>
+      {showForm && <CreateCabinForm cabinToEdit={cabin} />}
+    </>
   );
 }

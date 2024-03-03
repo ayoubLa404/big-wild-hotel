@@ -10,18 +10,31 @@ export async function getCabins() {
   return data;
 }
 
-export async function createCabin(newCabin) {
+export async function createOrEditCabin(newCabin, id) {
+  // when we edit image either be edit or not we check by :
+  // I) image edited => will start with supabaseUrl(https//supaabase...)
+  // II) image didn't editd => we get image start with a name (so we will create a new img (imagePath))
+  const hasImagePath = newCabin.image?.startsWith?.(supabaseUrl);
   // image path name should be like this
   // https://fgjjwffkbebpibvrklra.supabase.co/storage/v1/object/public/cabin-images/cabin-002.jpg
 
   // random => we make sure there each pic  has different name
   const imageName = `${Math.random()}-${newCabin.image.name}`.replaceAll('/', '');
-  const imagePath = `${supabaseUrl}/storage/v1/object/public/cabin-images/${imageName}`;
+  const imagePath = hasImagePath
+    ? newCabin.image
+    : `${supabaseUrl}/storage/v1/object/public/cabin-images/${imageName}`;
 
-  // 1) create cabin
-  const { data, error } = await supabase
-    .from('cabins')
-    .insert([{ ...newCabin, image: imagePath }]);
+  // 1) create/Edit cabin
+  let query = supabase.from('cabins');
+  // if !id we are in create session
+  // a) create session
+  if (!id) query = query.insert([{ ...newCabin, image: imagePath }]);
+
+  // b) edit session
+  if (id) query = query.update({ ...newCabin, image: imagePath }).eq('id', id);
+
+  // query taht comes from either create or edit will compolet by this
+  const { data, error } = await query.select().single();
 
   if (error) {
     console.error(error);
