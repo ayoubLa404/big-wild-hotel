@@ -10,10 +10,10 @@ export async function getCabins() {
   return data;
 }
 
-export async function createOrEditCabin(newCabin, id) {
-  // when we edit image either be edit or not we check by :
-  // I) image edited => will start with supabaseUrl(https//supaabase...)
-  // II) image didn't editd => we get image start with a name (so we will create a new img (imagePath))
+export async function createOrUpdateCabin(newCabin, id) {
+  // when we update image either be update or not we check by :
+  // I) image updateed => will start with supabaseUrl(https//supaabase...)
+  // II) image didn't updated => we get image start with a name (so we will create a new img (imagePath))
   const hasImagePath = newCabin.image?.startsWith?.(supabaseUrl);
   // image path name should be like this
   // https://fgjjwffkbebpibvrklra.supabase.co/storage/v1/object/public/cabin-images/cabin-002.jpg
@@ -24,22 +24,25 @@ export async function createOrEditCabin(newCabin, id) {
     ? newCabin.image
     : `${supabaseUrl}/storage/v1/object/public/cabin-images/${imageName}`;
 
-  // 1) create/Edit cabin
+  // 1) create/update cabin
   let query = supabase.from('cabins');
   // if !id we are in create session
   // a) create session
   if (!id) query = query.insert([{ ...newCabin, image: imagePath }]);
 
-  // b) edit session
+  // b) update session
   if (id) query = query.update({ ...newCabin, image: imagePath }).eq('id', id);
 
-  // query taht comes from either create or edit will compolet by this
+  // query taht comes from either create or update will compolet by this
   const { data, error } = await query.select().single();
 
   if (error) {
     console.error(error);
     throw new Error('cabin couldnt be created');
   }
+
+  // don't upload image if it already uploaded
+  if (hasImagePath) return data;
   // 2) uplaod image
   const { error: storageError } = await supabase.storage
     .from('cabin-images')
@@ -55,7 +58,7 @@ export async function createOrEditCabin(newCabin, id) {
   return data;
 }
 
-export async function DeleteCabin(id) {
+export async function deleteCabinApi(id) {
   const { data, error } = await supabase.from('cabins').delete().eq('id', id);
 
   if (error) {

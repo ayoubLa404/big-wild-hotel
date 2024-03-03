@@ -1,10 +1,13 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { toast } from 'react-hot-toast';
 import styled from 'styled-components';
-import { DeleteCabin } from '../../services/apiCabins';
+import { IoDuplicate } from 'react-icons/io5';
+import { HiTrash } from 'react-icons/hi2';
+import { HiPencil } from 'react-icons/hi';
+
 import { formatCurrency } from '../../utils/helpers';
 import CreateCabinForm from './CreateCabinForm';
+import { useDeleteCabin } from './useDeleteCabin';
+import { useCreateCabin } from './useCreateCabin';
 
 const TableRow = styled.div`
   display: grid;
@@ -47,23 +50,29 @@ const Discount = styled.div`
 
 export default function CabinRow({ cabin }) {
   const [showForm, setShowForm] = useState(false);
-  const { id: cabinId, name, maxCapacity, regularPrice, discount, image } = cabin;
+  const {
+    id: cabinId,
+    name,
+    maxCapacity,
+    regularPrice,
+    description,
+    discount,
+    image,
+  } = cabin;
 
-  // queryClient is responsible for invalidate data then it will cause a refetch
-  const queryClient = useQueryClient();
-  const { mutate, isLoading: isDeleting } = useMutation({
-    mutationFn: (id) => DeleteCabin(id),
-    // on success what happend
-    onSuccess: () => {
-      // this will make 'cabins' invalidate so will refrech data
-      queryClient.invalidateQueries({ queryKey: ['cabins'] });
-      // display a nice notification to user that it's deleted
-      toast.success('cabin deleted successufully');
-    },
-    // on error what happend
-    onError: (err) => toast.error(err?.message),
-  });
+  const { deleteCabin, isDeleting } = useDeleteCabin();
+  const { mutateCreate, isCreating } = useCreateCabin();
 
+  function handleDuplicate() {
+    mutateCreate({
+      name: `copy of ${name}`,
+      maxCapacity,
+      regularPrice,
+      description,
+      discount,
+      image,
+    });
+  }
   return (
     <>
       <TableRow role="row">
@@ -71,11 +80,20 @@ export default function CabinRow({ cabin }) {
         <Cabin>{name}</Cabin>
         <div>Fits up to {maxCapacity} guests</div>
         <Price>{formatCurrency(regularPrice)}</Price>
-        <Discount>{formatCurrency(discount)}</Discount>
+        {discount ? (
+          <Discount>{formatCurrency(discount)}</Discount>
+        ) : (
+          <span>&mdash;</span>
+        )}
         <div>
-          <button onClick={() => setShowForm((s) => !s)}>Edit</button>
-          <button disabled={isDeleting} onClick={() => mutate(cabinId)}>
-            Delete
+          <button disabled={isCreating} onClick={handleDuplicate}>
+            <IoDuplicate />
+          </button>
+          <button onClick={() => setShowForm((s) => !s)}>
+            <HiPencil />
+          </button>
+          <button disabled={isDeleting} onClick={() => deleteCabin(cabinId)}>
+            <HiTrash />
           </button>
         </div>
       </TableRow>

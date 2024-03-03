@@ -1,6 +1,4 @@
 import { useForm } from 'react-hook-form';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'react-hot-toast';
 
 import FormRow from '../../ui/FormRow';
 import Input from '../../ui/Input';
@@ -8,7 +6,9 @@ import Form from '../../ui/Form';
 import Button from '../../ui/Button';
 import FileInput from '../../ui/FileInput';
 import Textarea from '../../ui/Textarea';
-import { createOrEditCabin } from '../../services/apiCabins';
+
+import { useCreateCabin } from './useCreateCabin';
+import { useUpdateCabin } from './useUpdateCabin';
 
 function CreateCabinForm({ cabinToEdit = {} }) {
   const { id: editId, ...editValues } = cabinToEdit;
@@ -17,40 +17,33 @@ function CreateCabinForm({ cabinToEdit = {} }) {
   const { register, handleSubmit, reset, getValues, formState } = useForm({
     defaultValues: isEditSession ? editValues : '',
   });
-  const queryClient = useQueryClient();
   const { errors } = formState;
 
   // creating
-  const { mutate: mutateCreate, isLoading: isCreating } = useMutation({
-    // mutationFn: (cabin) => createCabin(cabin),
-    mutationFn: createOrEditCabin,
-    onSuccess: () => {
-      toast.success('cabin created successfully');
-      queryClient.invalidateQueries({ queryKey: ['cabins'] });
-      reset();
-    },
-    onError: (err) => toast.error(err?.message),
-  });
+  const { mutateCreate, isCreating } = useCreateCabin();
 
-  // editing
-  const { mutate: mutateEdit, isLoading: isEditing } = useMutation({
-    // destrucringt the obj that we get from mutateEdit
-    mutationFn: ({ newCabinData, id }) => createOrEditCabin(newCabinData, id),
-    onSuccess: () => {
-      toast.success('cabin edited successfully');
-      queryClient.invalidateQueries({ queryKey: ['cabins'] });
-      reset();
-    },
-    onError: (err) => toast.error(err?.message),
-  });
+  // updating
+  const { mutateUpdate, isUpdating } = useUpdateCabin();
 
-  const creatingOrEditing = isCreating || isEditing;
+  const creatingOrUpdatin = isCreating || isUpdating;
+
   function onSubmit(data) {
-    // like in apicabin which img we should pass the mutateEdit is't the same image or in the file
+    // like in apicabin which img we should pass the mutateUpdate is't the same image or in the file
     const image = typeof data.image === 'string' ? data.image : data.image[0];
 
-    if (isEditSession) mutateEdit({ newCabinData: { ...data, image }, id: editId });
-    else mutateCreate({ ...data, image: data.image[0] });
+    if (isEditSession)
+      mutateUpdate(
+        { newCabinData: { ...data, image }, id: editId },
+        {
+          onSuccess: (data) => {
+            reset();
+            // ⛔⛔mutate like useMutation it can have {opt} and receive data params that comes return mutationFn in this case it's data from createCabinApi
+            // console.log(data);
+          },
+        }
+      );
+    else
+      mutateCreate({ ...data, image: data.image[0] }, { onSuccess: (data) => reset() });
     // console.log(data.image[0]);
   }
   function onError(errors) {
@@ -61,7 +54,7 @@ function CreateCabinForm({ cabinToEdit = {} }) {
       <FormRow label="Cabin name" error={errors?.name?.message}>
         <Input
           type="text"
-          disabled={creatingOrEditing}
+          disabled={creatingOrUpdatin}
           id="name"
           {...register('name', { required: 'this field is required' })}
         />
@@ -70,7 +63,7 @@ function CreateCabinForm({ cabinToEdit = {} }) {
       <FormRow label="Maximum capacity" error={errors?.maxCapacity?.message}>
         <Input
           type="number"
-          disabled={creatingOrEditing}
+          disabled={creatingOrUpdatin}
           id="maxCapacity"
           {...register('maxCapacity', {
             required: 'this field is required',
@@ -82,7 +75,7 @@ function CreateCabinForm({ cabinToEdit = {} }) {
       <FormRow label="Regular price" error={errors?.regularPrice?.message}>
         <Input
           type="number"
-          disabled={creatingOrEditing}
+          disabled={creatingOrUpdatin}
           id="regularPrice"
           {...register('regularPrice', {
             required: 'this field is required',
@@ -94,7 +87,7 @@ function CreateCabinForm({ cabinToEdit = {} }) {
       <FormRow label="Discount" error={errors?.discount?.message}>
         <Input
           type="number"
-          disabled={creatingOrEditing}
+          disabled={creatingOrUpdatin}
           id="discount"
           defaultValue={0}
           {...register('discount', {
@@ -113,7 +106,7 @@ function CreateCabinForm({ cabinToEdit = {} }) {
       <FormRow label="Description for website" error={errors?.description?.message}>
         <Textarea
           type="number"
-          disabled={creatingOrEditing}
+          disabled={creatingOrUpdatin}
           id="description"
           defaultValue=""
           {...register('description', { required: 'this field is required' })}
@@ -133,10 +126,10 @@ function CreateCabinForm({ cabinToEdit = {} }) {
 
       <FormRow>
         {/* type is an HTML attribute! */}
-        <Button variation="secondary" disabled={creatingOrEditing} type="reset">
+        <Button variation="secondary" disabled={creatingOrUpdatin} type="reset">
           Cancel
         </Button>
-        <Button disabled={creatingOrEditing}>
+        <Button disabled={creatingOrUpdatin}>
           {isEditSession ? 'Edit Cabin' : 'Create a cabin'}
         </Button>
       </FormRow>
