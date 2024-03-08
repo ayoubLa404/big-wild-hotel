@@ -10,7 +10,7 @@ import Textarea from '../../ui/Textarea';
 import { useCreateCabin } from './useCreateCabin';
 import { useUpdateCabin } from './useUpdateCabin';
 
-function CreateCabinForm({ cabinToEdit = {} }) {
+function CreateCabinForm({ cabinToEdit = {}, onCloseModal }) {
   const { id: editId, ...editValues } = cabinToEdit;
   const isEditSession = Boolean(editId);
 
@@ -37,20 +37,31 @@ function CreateCabinForm({ cabinToEdit = {} }) {
         {
           onSuccess: (data) => {
             reset();
+            onCloseModal?.();
             // ⛔⛔mutate like useMutation it can have {opt} and receive data params that comes return mutationFn in this case it's data from createCabinApi
             // console.log(data);
           },
         }
       );
     else
-      mutateCreate({ ...data, image: data.image[0] }, { onSuccess: (data) => reset() });
+      mutateCreate(
+        { ...data, image: data.image[0] },
+        {
+          onSuccess: (data) => {
+            reset();
+            onCloseModal?.();
+          },
+        }
+      );
     // console.log(data.image[0]);
   }
   function onError(errors) {
     // console.log(errors);
   }
   return (
-    <Form onSubmit={handleSubmit(onSubmit, onError)}>
+    <Form
+      onSubmit={handleSubmit(onSubmit, onError)}
+      type={onCloseModal ? 'modal' : 'regular'}>
       <FormRow label="Cabin name" error={errors?.name?.message}>
         <Input
           type="text"
@@ -126,7 +137,11 @@ function CreateCabinForm({ cabinToEdit = {} }) {
 
       <FormRow>
         {/* type is an HTML attribute! */}
-        <Button variation="secondary" disabled={creatingOrUpdatin} type="reset">
+        <Button
+          variation="secondary"
+          disabled={creatingOrUpdatin}
+          type="reset"
+          onClick={() => onCloseModal?.()}>
           Cancel
         </Button>
         <Button disabled={creatingOrUpdatin}>

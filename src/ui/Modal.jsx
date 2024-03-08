@@ -1,4 +1,10 @@
-import styled from "styled-components";
+import { useContext } from 'react';
+import { useState } from 'react';
+import { cloneElement } from 'react';
+import { createContext } from 'react';
+import { createPortal } from 'react-dom';
+import { HiXMark } from 'react-icons/hi2';
+import styled from 'styled-components';
 
 const StyledModal = styled.div`
   position: fixed;
@@ -48,3 +54,45 @@ const Button = styled.button`
     color: var(--color-grey-500);
   }
 `;
+
+const ModalContext = createContext();
+
+function Modal({ children }) {
+  const [openName, setOpenName] = useState('');
+  const close = () => setOpenName('');
+  return (
+    <ModalContext.Provider value={{ openName, close, setOpenName }}>
+      {children}
+    </ModalContext.Provider>
+  );
+}
+
+function Open({ children, opens: opensWindowName }) {
+  const { setOpenName } = useContext(ModalContext);
+
+  // because children is only one the button check (AddCabin)
+  return cloneElement(children, { onClick: () => setOpenName(opensWindowName) });
+}
+
+export function Window({ children, name }) {
+  const { openName, close } = useContext(ModalContext);
+
+  if (name !== openName) return null;
+
+  return createPortal(
+    <Overlay>
+      <StyledModal>
+        <Button onClick={close}>
+          <HiXMark />
+        </Button>
+        <div>{cloneElement(children, { onCloseModal: close })}</div>
+      </StyledModal>
+    </Overlay>,
+    // this will render this compoennet adjacent to root div[createPortal]
+    document.body
+  );
+}
+Modal.Open = Open;
+Modal.Window = Window;
+
+export default Modal;
